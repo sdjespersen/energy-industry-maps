@@ -18,23 +18,25 @@ const COMPANIES_SOURCE = 'companies';
 const MAPS = CONFIG['maps'];
 const POINT_LAYER = 'energy-companies-point-layer';
 
-mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_API_TOKEN;
+// = process.env.REACT_APP_MAPBOX_API_TOKEN;
+// mapboxgl.accessToken
+mapboxgl.accessToken='pk.eyJ1IjoidG90b3JvLWRha2UiLCJhIjoiY2tiNzJuZmQ3MDFudDJxa2N1ZG91YzBzciJ9.5qJpYzti2W7avnuM9rCiKA'
 
 function getPopupContent(props) {
   const categoryInfo = ['tax1', 'tax2', 'tax3']
     .map(k => props[k])
-    .filter(s => s).join(" | ");
+    .filter(s => s).join(", ");
   var extraNotes = "";
   if (props.hasOwnProperty("notes") && props["notes"] !== "") {
-    extraNotes = `<span>${props['notes']}</span><br />`;
+    extraNotes = `Focus: <span>${props['notes']}</span><br />`;
   }
   return `
-    <div class="popup">
+    <div class="popup" style = "color: 626262">
       <h3 class="company-name">
-        <a href=${props['website']} target="blank">${props['company']}</a>
+        <a href=${props['website']} class="popup-link" target="blank">${props['company']}</a>
       </h3>
-      <span class="category-info">${categoryInfo}</span><br />
-      <span class="city-info">${props['city']}</span><br />
+      Sector(s): <span class="category-info">${categoryInfo}</span><br />
+      City: <span class="city-info">${props['city']}</span><br />
       ${extraNotes}
     </div>`;
 }
@@ -52,9 +54,10 @@ function displayPopup(map, feature) {
   new mapboxgl.Popup({})
     .setLngLat(coordinates)
     .setHTML(getPopupContent(feature.properties))
-    .setMaxWidth("300px")
+    .setMaxWidth("600px")
     .addTo(map);
 }
+//79ddf2
 
 function populateMapData(map, mapId, mapData) {
   map.setCenter(MAPS[mapId].center);
@@ -82,7 +85,7 @@ function populateMapData(map, mapId, mapData) {
         'circle-opacity': 0.85,
         // color circles by primary category
         'circle-color': ['match', ['get', 'tax1']].concat(circleColors),
-        'circle-stroke-color': '#fff',
+        'circle-stroke-color': '#000',
         'circle-stroke-width': 0.4,
       }
     });
@@ -172,6 +175,17 @@ const useStyles = makeStyles((theme) => ({
     display: 'flex',
     flexDirection: 'row',
   },
+  mainControlOverlayShifted: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    padding: 0,
+    margin: 0,
+    pointerEvents: 'auto',
+    display: 'flex',
+    flexDirection: 'row',
+    marginLeft: 320,
+  },
   insightLogoContainer: {
     padding: 8,
   },
@@ -250,6 +264,7 @@ export default function App() {
     let map = new mapboxgl.Map({
       container: "map-container",
       style: 'mapbox://styles/mapbox/dark-v10',
+      attributionControl: false,
       center: MAPS[selectedMapId].center,
       zoom: 6,
       minZoom: 6,
@@ -291,6 +306,7 @@ export default function App() {
     }
   });
 
+if (!mobileDrawerOpen) {
   return (
     <ThemeProvider theme={THEME}>
       <div className={classes.root}>
@@ -306,6 +322,7 @@ export default function App() {
           onToggleCategory={handleToggleCategory} />
         <main className={classes.mainContent}>
           <div id="map-container" className={classes.mapContainer} />
+            <LogoOverlay selectedMapId={selectedMapId} />
           <div className={classes.mapOverlay}>
             <div className={classes.mapOverlayInner}>
               <div className={classes.mainControlOverlay}>
@@ -331,4 +348,47 @@ export default function App() {
       </div>
     </ThemeProvider>
   );
+} else {
+  return (
+    <ThemeProvider theme={THEME}>
+      <div className={classes.root}>
+        <SettingsPane
+          selectedMapId={selectedMapId}
+          mobileDrawerOpen={mobileDrawerOpen}
+          selectedCategories={selectedCategories}
+          onToggleOpen={setMobileDrawerOpen}
+          onSelectMap={handleSelectMap}
+          taxonomy={taxonomy}
+          onSelectAllCategories={() => handleSelectAllCategories(taxonomy)}
+          onDeselectAllCategories={handleDeselectAllCategories}
+          onToggleCategory={handleToggleCategory} />
+        <main className={classes.mainContent}>
+          <div id="map-container" className={classes.mapContainer} />
+            <LogoOverlay selectedMapId={selectedMapId} />
+          <div className={classes.mapOverlay}>
+            <div className={classes.mapOverlayInner}>
+              <div className={classes.mainControlOverlayShifted}>
+                <Hidden smDown implementation="css">
+                  <div className={classes.insightLogoContainer}>
+                    <img src={insightLogo} alt="aes insight logo" height="80" />
+                  </div>
+                </Hidden>
+                <div className={classes.titleAndSearch}>
+                  <div className={classes.mapTitle}>
+                    <Typography variant="h1">{MAPS[selectedMapId].title}</Typography>
+                  </div>
+                  <Omnibox
+                    companies={companiesGeojson.features}
+                    onSelectCompany={handleSelectCompany}
+                    onOpenMobileDrawer={() => setMobileDrawerOpen(true)} />
+                  </div>
+              </div>
+              <LogoOverlay selectedMapId={selectedMapId} />
+            </div>
+          </div>
+        </main>
+      </div>
+    </ThemeProvider>
+  );
+}
 }
